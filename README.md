@@ -1,23 +1,38 @@
-# MeetingMind
+# MeetingMind — AI-Powered Meeting Intelligence System
 
-Local-first meeting transcription, speaker diarization, and LLM-powered analysis.
-Runs entirely on your laptop — no cloud, no subscriptions.
+Local-first meeting transcription, speaker diarization, and LLM-powered analysis. Runs entirely on your laptop — no cloud, no subscriptions.
 
----
+## Overview
+
+MeetingMind is a multi-stage pipeline that captures audio, converts speech to text, assigns speaker identities, generates live summaries, and enables post-session querying via a retrieval-augmented generation (RAG) system.
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Audio capture | `sounddevice` |
-| Transcription | `faster-whisper` (CTranslate2) |
-| Diarization | `pyannote/speaker-diarization-3.1` |
-| LLM | Ollama (`qwen2.5:3b` by default) |
-| Backend | FastAPI + WebSocket |
-| Vector store | ChromaDB |
-| Frontend | Plain HTML/JS (no build step) |
+| Layer         | Technology                         |
+| ------------- | ---------------------------------- |
+| Audio capture | `sounddevice`                      |
+| Transcription | `faster-whisper` (CTranslate2)     |
+| Diarization   | `pyannote/speaker-diarization-3.1` |
+| LLM           | Ollama (`qwen2.5:3b` by default)   |
+| Backend       | FastAPI + WebSocket                |
+| Vector store  | ChromaDB                           |
+| Frontend      | Plain HTML/JS (no build step)      |
 
----
+## Architecture
+
+Audio Input
+→ Audio Capture (chunking with overlap)
+→ Transcription (Faster-Whisper)
+→ Diarization (pyannote)
+→ Speaker Resolution
+→ Session Management
+→ LLM Processing (live + post)
+→ RAG Indexing
+→ WebSocket Delivery to UI
+
+Each stage is modular and can be tested independently.
+
+<img width="600" height="600" alt="meetingmind_architecture" src="https://github.com/user-attachments/assets/a002f5e2-8091-4d08-beba-fc8360d5fac1" />
 
 ## Setup
 
@@ -26,7 +41,7 @@ Runs entirely on your laptop — no cloud, no subscriptions.
 ```bash
 cd meetingmind
 python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
+source venv/bin/activate          # Windows: venv\\Scripts\\activate
 pip install -r requirements.txt
 ```
 
@@ -38,10 +53,11 @@ cp .env.example .env
 ```
 
 **HF Token setup (one-time):**
-1. Create a free account at https://huggingface.co
-2. Accept model terms at https://hf.co/pyannote/speaker-diarization-3.1
-3. Accept model terms at https://hf.co/pyannote/segmentation-3.0
-4. Generate a token at https://hf.co/settings/tokens
+
+1. Create a free account at [https://huggingface.co](https://huggingface.co)
+2. Accept model terms at [https://hf.co/pyannote/speaker-diarization-3.1](https://hf.co/pyannote/speaker-diarization-3.1)
+3. Accept model terms at [https://hf.co/pyannote/segmentation-3.0](https://hf.co/pyannote/segmentation-3.0)
+4. Generate a token at [https://hf.co/settings/tokens](https://hf.co/settings/tokens)
 5. Paste it into `.env` as `HF_TOKEN=hf_...`
 
 ### 3. Pull Ollama models
@@ -54,8 +70,6 @@ ollama pull nomic-embed-text    # RAG embeddings (post-session Q&A)
 ollama pull llama3.1:8b
 ```
 
----
-
 ## Running
 
 ```bash
@@ -63,73 +77,66 @@ cd backend
 python main.py
 ```
 
-Open **http://localhost:8000** in your browser.
-
----
+Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ## Usage
 
-1. Enter known speaker names (comma-separated) in the input box
-2. Press **Start** — recording begins immediately
-3. Speak — transcript appears in real-time, attributed to speakers
-4. Live summary refreshes every 30 seconds in the right panel
-5. Press **Stop** when the meeting ends
-6. Press **Analyse** for full post-session analysis
-7. Use the **Q&A** tab to query the transcript: *"What did Rohan say about budget?"*
+1. Enter known speaker names (comma-separated)
+2. Press Start to begin recording
+3. Speak; transcript appears in real time with speaker labels
+4. Live summary refreshes periodically
+5. Press Stop when the meeting ends
+6. Press Analyse for post-session insights
+7. Use the Q&A tab to query the transcript
 
-### Renaming anonymous speakers
-Click **rename** next to any "Speaker N" label in the Speakers tab.
+### Renaming speakers
 
----
+Rename any anonymous speaker ("Speaker N") from the UI.
 
 ## Testing individual components
 
 ```bash
-# Test audio capture (watches mic for 30s, prints chunk stats)
 cd backend
 python audio_capture.py
-
-# Test transcription (pass a WAV file)
 python transcriber.py path/to/audio.wav
-
-# Test diarization (pass a WAV file)
 python diarizer.py path/to/audio.wav
 ```
 
----
+## Project Structure
 
-## Performance tips
-
-| Machine | Recommended Whisper model | Notes |
-|---|---|---|
-| MacBook (Intel, no Metal) | `base` or `tiny` | CPU-only; base ≈ 2–3× realtime |
-| Lenovo LOQ (NVIDIA GPU) | `small` or `medium` | CUDA speeds this up ~10× |
-
-Switch the model in `backend/config.py`:
-```python
-WHISPER_MODEL = "small"   # tiny | base | small | medium | large-v3
-```
-
----
-
-## Project structure
-
-```
 meetingmind/
 ├── backend/
 │   ├── main.py              FastAPI app + WebSocket
-│   ├── audio_capture.py     Mic → 15s chunks
+│   ├── audio_capture.py     Mic → chunking
 │   ├── transcriber.py       faster-whisper wrapper
 │   ├── diarizer.py          pyannote diarization
 │   ├── speaker_registry.py  Cross-chunk speaker identity
-│   ├── session_manager.py   Session state + file persistence
-│   ├── llm_client.py        Ollama client (live + post)
-│   ├── rag.py               ChromaDB RAG for Q&A
-│   └── config.py            All tunable parameters
+│   ├── session_manager.py   Session state + persistence
+│   ├── llm_client.py        Ollama client
+│   ├── rag.py               RAG pipeline
+│   └── config.py            Configuration
 ├── frontend/
-│   └── index.html           Single-file web UI
-├── sessions/                Saved transcripts (auto-created)
+│   └── index.html
+├── sessions/
 ├── requirements.txt
-├── .env.example
-└── README.md
-```
+└── .env
+
+## Performance Tips
+
+| Machine         | Recommended Whisper model | Notes            |
+| --------------- | ------------------------- | ---------------- |
+| MacBook (Intel) | `base` or `tiny`          | CPU-only         |
+| GPU system      | `small` or `medium`       | Faster inference |
+
+Adjust in `backend/config.py`.
+
+## Limitations
+
+* Near-live processing introduces latency
+* Diarization consistency can drift across long sessions
+* CPU inference may be slow on low-end machines
+* Single active session at a time
+
+## Summary
+
+MeetingMind converts conversations into structured, queryable data using speech recognition, speaker diarization, language models, and vector search. It is designed as a complete system blueprint with clear extension points for future development.
