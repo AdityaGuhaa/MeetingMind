@@ -32,7 +32,7 @@ Audio Input
 
 Each stage is modular and can be tested independently.
 
-<img width="600" height="600" alt="meetingmind_architecture" src="https://github.com/user-attachments/assets/a002f5e2-8091-4d08-beba-fc8360d5fac1" />
+<img width="600" height="600" alt="meetingmind_architecture" src="https://github.com/user-attachments/assets/b2e29c46-5c16-4d8a-a0d0-7580a0188f4f" />
 
 ## Setup
 
@@ -104,22 +104,24 @@ python diarizer.py path/to/audio.wav
 
 ## Project Structure
 
+```text
 meetingmind/
 ├── backend/
-│   ├── main.py              FastAPI app + WebSocket
-│   ├── audio_capture.py     Mic → chunking
-│   ├── transcriber.py       faster-whisper wrapper
-│   ├── diarizer.py          pyannote diarization
-│   ├── speaker_registry.py  Cross-chunk speaker identity
-│   ├── session_manager.py   Session state + persistence
-│   ├── llm_client.py        Ollama client
-│   ├── rag.py               RAG pipeline
-│   └── config.py            Configuration
+│   ├── main.py              # FastAPI app + WebSocket
+│   ├── audio_capture.py     # Mic input → chunking
+│   ├── transcriber.py       # faster-whisper wrapper
+│   ├── diarizer.py          # pyannote diarization
+│   ├── speaker_registry.py  # Cross-chunk speaker identity
+│   ├── session_manager.py   # Session state + persistence
+│   ├── llm_client.py        # Ollama client (live + post)
+│   ├── rag.py               # RAG pipeline
+│   └── config.py            # Configuration
 ├── frontend/
-│   └── index.html
-├── sessions/
+│   └── index.html           # Single-file UI
+├── sessions/                # Stored transcripts
 ├── requirements.txt
 └── .env
+```
 
 ## Performance Tips
 
